@@ -103,6 +103,18 @@ class _PatientsReportPageState extends State<PatientsReportPage> {
     }
   }
 
+  String _formatDateToIST(String dateString) {
+    // Convert the date string to DateTime object
+    DateTime dateTime = DateTime.parse(dateString);
+
+    // Convert it to Indian Standard Time (IST)
+    DateTime istDateTime =
+        dateTime.toUtc().add(Duration(hours: 5, minutes: 30));
+
+    // Format it to a readable string
+    return DateFormat('MMM dd, yyyy  hh:mm a').format(istDateTime);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -131,9 +143,13 @@ class _PatientsReportPageState extends State<PatientsReportPage> {
                     // Assuming your report data has fields like 'report', 'date', 'description'
 
                     final reportDate = report['createdAt'] != null
-                        ? DateFormat('MMM dd, yyyy').format(
-                            DateTime.parse(report['createdAt'].toString()))
+                        ? _formatDateToIST(report['createdAt'].toString())
                         : 'N/A';
+
+                    // final reportDate = report['createdAt'] != null
+                    //     ? DateFormat('MMM dd, yyyy  hh:mm a').format(
+                    //         DateTime.parse(report['createdAt'].toString()))
+                    //     : 'N/A';
                     final reportDescription =
                         report['description'] ?? 'No description provided.';
 

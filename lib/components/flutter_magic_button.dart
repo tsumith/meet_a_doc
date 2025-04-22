@@ -173,7 +173,7 @@ class _MagicButtonState extends State<MagicButton>
                             Padding(
                               padding: const EdgeInsets.only(
                                   left:
-                                      8.0), // Example padding to the right of the icon
+                                      0), // Example padding to the right of the icon
                               child: Icon(
                                 widget.icon,
                                 color: _currentIconColor,
@@ -184,7 +184,7 @@ class _MagicButtonState extends State<MagicButton>
                           if (widget.label != null)
                             Padding(
                               padding: const EdgeInsets.only(
-                                  right: 8.0), // Example horizontal padding
+                                  right: 8), // Example horizontal padding
                               child:
                                   Text(widget.label!, style: _currentTextStyle),
                             ),

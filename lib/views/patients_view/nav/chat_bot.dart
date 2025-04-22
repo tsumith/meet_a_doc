@@ -7,6 +7,8 @@ import 'package:meet_a_doc/services/api_service.dart' as ApiService;
 import 'package:meet_a_doc/services/session_service.dart';
 import 'package:meet_a_doc/services/socket_service.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -16,6 +18,9 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _text = '';
   final List<_ChatMessage> _messages = []; //messages list
   final TextEditingController _controller =
       TextEditingController(); //text controller
@@ -26,17 +31,32 @@ class _ChatScreenState extends State<ChatScreen> {
   String? doctorId;
   String? sessionId;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  Key _reportButtonKey = UniqueKey(); /////////////\
+  void _clearChatAndResetReportButton() {
+    setState(() {
+      _messages.clear();
+      _controller.clear();
+      _reportButtonKey =
+          UniqueKey(); // Assign a new UniqueKey to force a new button
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    print(
+        "ChatScreen initState() called"); ////////////////////////////////////////////////
     sessionId = SessionManager.generateSessionId();
     // Initialize the WebSocket helper with the server URL
+    _speech = stt.SpeechToText();
     _connectToWebSocket();
   }
 
-  void _connectToWebSocket() async {//meet-a-doc-server.onrender.com
-    _webSocketHelper = WebSocketHelper(url: 'wss://meet-a-doc-server.onrender.com');
+//function for connecting to socket
+  void _connectToWebSocket() async {
+    //meet-a-doc-server.onrender.com
+    _webSocketHelper =
+        WebSocketHelper(url: 'wss://meet-a-doc-server.onrender.com');
     _webSocketHelper.connect();
     String uid = FirebaseAuth.instance.currentUser!.uid;
     doctorId = await ApiService.getDoctorId(uid);
@@ -66,6 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // Auto-scroll when a new message comes in
   }
 
+  //// function for sending the generate report signal
   void _sendReport() {
     final reportTriggerMsg = {
       'userId': FirebaseAuth.instance.currentUser!.uid,
@@ -84,6 +105,49 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+
+  //////////listing to the key changes for speech to text
+  void _listen() async {
+    // Request microphone permission
+    var status = await Permission.microphone.status;
+    if (!status.isGranted) {
+      status = await Permission.microphone.request();
+      if (!status.isGranted) {
+        print('Microphone permission denied');
+        return;
+      }
+    }
+
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (status) => print('STATUS: $status'),
+        onError: (error) => print('ERROR: $error'),
+      );
+
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (result) {
+            print('Recognized words: ${result.recognizedWords}');
+            setState(() {
+              _text = result.recognizedWords;
+              _controller.text = _text;
+              _controller.selection = TextSelection.fromPosition(
+                TextPosition(offset: _controller.text.length),
+              );
+            });
+          },
+        );
+      } else {
+        print('Speech recognition not available');
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
+  }
+
+  //
 
   @override
   void dispose() {
@@ -166,8 +230,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 const Color.fromARGB(255, 11, 187, 143)
               ]),
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
               boxShadow: [
                 BoxShadow(
@@ -182,18 +246,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 top: 40, left: 16.0, right: 16.0, bottom: 16.0),
             child: Row(
               children: [
-                IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                    )),
                 const CircleAvatar(
-                  radius: 17,
+                  radius: 20,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.person, color: primaryColor, size: 19),
+                  child: Icon(Icons.android_rounded,
+                      color: primaryColor, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -220,6 +277,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 Container(
+                  key: _reportButtonKey,
                   margin:
                       const EdgeInsets.symmetric(horizontal: 5, vertical: 15),
                   child: MagicButton(
@@ -251,7 +309,15 @@ class _ChatScreenState extends State<ChatScreen> {
                       _sendReport();
                     },
                   ),
-                )
+                ),
+                IconButton(
+                    onPressed: () {
+                      _showConfirmationDialog(context);
+                    },
+                    icon: const Icon(
+                      Icons.refresh_rounded,
+                      color: Colors.white,
+                    )),
 
                 // Keep the magic button here
               ],
@@ -295,6 +361,15 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(width: 10),
                   IconButton(
+                    icon: Icon(
+                      !_isListening ? Icons.mic : Icons.mic_off_outlined,
+                      color: !_isListening ? primaryColor : Colors.grey,
+                    ),
+                    onPressed: _listen,
+                    color: const Color(0xff10a37f),
+                  ),
+                  const SizedBox(width: 10),
+                  IconButton(
                     icon: const Icon(Icons.send),
                     onPressed: () => _sendMessage(_controller.text),
                     color: const Color(0xff10a37f),
@@ -306,6 +381,48 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showConfirmationDialog(BuildContext context) async {
+    bool? result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear chat?'),
+          content: const Text('Are you sure you want to clear the chat?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // User pressed No
+              },
+              child: const Text('No'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // User pressed Yes
+              },
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      // Perform your 'Yes' action here
+      _messages.clear(); // Clear the messages list
+      _controller.clear(); // Clear the text field
+      _clearChatAndResetReportButton();
+      // You can call other methods or update state here
+    } else if (result == false) {
+      // Perform your 'No' action here (or do nothing)
+      Navigator.pop(context);
+      print('User cancelled (No)');
+    } else {
+      // Dialog was dismissed in some other way (e.g., tapping outside)
+
+      print('Dialog dismissed');
+    }
   }
 
   Widget _buildEmptyChatInstructions() {

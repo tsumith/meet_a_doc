@@ -19,6 +19,7 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _reports = [];
   bool loading = true;
+  Map<String, dynamic> user = {};
 
   @override
   void initState() {
@@ -47,6 +48,9 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
   }
 
   Future<void> _getUsers() async {
+    user = await FirestoreService.getUserData(
+        FirebaseAuth.instance.currentUser!.uid);
+
     final users = await FirestoreService.getUsers(
       FirebaseAuth.instance.currentUser?.uid ?? "",
     );
@@ -72,6 +76,34 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
     await Clipboard.setData(ClipboardData(text: refCode));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Referral link copied to clipboard!')),
+    );
+  }
+
+  Widget _buildEmptyPatients() {
+    return SizedBox(
+      height: 140, // Adjust height as needed
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.group_off, color: Colors.grey[400], size: 40),
+              const SizedBox(height: 1),
+              const Text(
+                "No Patients Yet",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Once patients connect using your referral link, they will appear here.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -105,8 +137,6 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       backgroundColor: const Color.fromRGBO(242, 253, 255, 1),
       body: RefreshIndicator(
@@ -164,7 +194,7 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
-                                'Welcome,\nDr. ${user?.email?.split('@')[0] ?? "User"}',
+                                'Welcome,\nDr. ${user['fullName']}',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -196,9 +226,7 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                           ),
                           SizedBox(height: 12),
                           _users.isEmpty
-                              ? Center(
-                                  child: Text("no patients"),
-                                )
+                              ? _buildEmptyPatients()
                               : SizedBox(
                                   height: 167,
                                   child: ListView.builder(

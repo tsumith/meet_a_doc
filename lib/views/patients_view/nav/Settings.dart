@@ -31,7 +31,6 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               const SizedBox(height: 10),
               Text(
-                "Settings",
+                "Profile",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -109,18 +108,78 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // Widget _infoTile(String title, String value, IconData icon) {
+  //   return Card(
+  //     color: const Color.fromARGB(255, 255, 255, 255),
+  //     elevation: 2,
+  //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  //     child: ListTile(
+  //       title: Text(
+  //         title,
+  //         style: const TextStyle(fontWeight: FontWeight.w600),
+  //       ),
+  //       subtitle: Text(value),
+  //       leading: Icon(icon),
+  //     ),
+  //   );
+  // }
+
   Widget _infoTile(String title, String value, IconData icon) {
-    return Card(
-      color: const Color.fromARGB(255, 255, 255, 255),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            // Circular Icon background
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xff10a37f).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: const Color(0xff10a37f)),
+            ),
+            const SizedBox(width: 16),
+            // Title and Value
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ],
         ),
-        subtitle: Text(value),
-        leading: Icon(icon),
       ),
     );
   }

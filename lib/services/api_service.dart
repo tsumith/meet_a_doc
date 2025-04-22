@@ -228,7 +228,8 @@ Future<void> setDatetoAppointment(Map<String, dynamic> appointment) async {
   final headers = {"Content-Type": "application/json"};
   final body = jsonEncode({
     'id': appointment['_id'],
-    'date': appointment['date'].toIso8601String()
+    'date': appointment['date'].toIso8601String(),
+    'status': appointment['status'],
   });
   try {
     final response = await http.post(url, headers: headers, body: body);
